@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/brython@3.11.1/brython.min.js"></script>
+    <style>
+      @font-face {
+        font-family: 'CustomFont';
+        src: url('font.woff') format('woff');
+      }
+      #animal {
+        position: relative;
+        left: 0px;
+        transition: left 0.1s linear; /* smooth movement (optional) */
+      }
+    </style>
+  </head>
+  <body onload="brython()">
+    <button id='left'><img src='orca.png'> Left</button><button id='right'><img src='orca.png'> Right</button>
+    <br/>
+    <img id='animal' src='orca.png'>
+    <h1>OUTPUT</h1>
+    R: <input id="r" /> G: <input id="g" /> B: <input id="b" />
+    Width: <input id="w" /> Height: <input id="h" />
+    Position X: <input id="x" /> Position Y: <input id="y" />
+    <button id="add">Add Square</button>
+
+    <canvas width="1000" height="200" id="canvas"></canvas>
+
+    <script type="text/python">
+from browser import document
+from browser.local_storage import storage
+if 'x' in storage:
+  xp=storage['x']
+else:
+  xp = 0
+animal=document['animal']
+data = {}
+rpid = '0'
+cid = '0'
+canvas = document["canvas"]
+ctx = canvas.getContext("2d")
+line = 1
+
+def update():
+  storage['x']=xp
+
+animal.style.left = f"{xp}px"
+
+def right(e):
+  global xp
+  xp+=10
+  animal.style.left = f"{xp}px"
+  update()
+
+def left(e):
+  global xp
+  xp-=10
+  animal.style.left = f"{xp}px"
+  update()
+
+document['left'].bind('click',left)
+document['right'].bind('click',right)
+
+def output(x):
+    global line
+    ctx.font = "20px CustomFont"
+    ctx.fillText(x, 10, line * 20)
+    line += 1
+
+output('Hi, welcome to my animal BRAIN!')
+
+def join(l, s):
+    return s.join(l)
+
+def createDesc(x):
+    s = []
+    for k, v in x.items():
+        if k != 'type':
+            if isinstance(v, dict):
+                s.append(createDesc(v))
+            else:
+                s.append(f"{k} {v}")
+    return join(s, ' ')
+
+def getColorComplexion(r, g, b):
+    return [r >= 120, g >= 120, b >= 120]
+
+def getColor(r, g, b):
+    x = getColorComplexion(int(r), int(g), int(b))
+    mapping = {
+        (1,1,1): 'white',
+        (1,1,0): 'yellow',
+        (0,1,1): 'cyan',
+        (1,0,1): 'purple',
+        (0,0,0): 'black',
+        (0,1,0): 'green',
+        (1,0,0): 'red',
+        (0,0,1): 'blue'
+    }
+    return mapping.get(tuple(map(int, x)), 'None!')
+
+def addData(desc, d):
+    global data, rpid
+    rpid = str(int(rpid) + 1)
+    data[desc] = {'obj': d, 'rpid': rpid}
+
+def getID(irpid):
+    y = {}
+    for k, v in data.items():
+        if v['rpid'] == str(irpid):
+            y[k] = v['obj']
+    return y
+
+class ObjectParser:
+    def square(self, r, g, b, sizex, sizey, x, y):
+        return {'type': 'obj-square', 'color': getColor(r, g, b),
+                'sizex': sizex, 'sizey': sizey, 'posx': x, 'posy': y}
+
+    def circle(self, r, g, b, radius, x, y):
+        return {'type': 'obj-circle', 'color': getColor(r, g, b),
+                'radius': radius, 'posx': x, 'posy': y}
+
+    def add(self, x, desc=''):
+        addData(createDesc(x) + ' ' + desc, x)
+
+def getInput(x):
+    return document[x].value
+
+op = ObjectParser()
+
+def add(event):
+    op.add(op.square(getInput('r'), getInput('g'), getInput('b'),
+                     getInput('w'), getInput('h'),
+                     getInput('x'), getInput('y')))
+    output(createDesc(getID(int(rpid))))
+
+document['add'].bind('click', add)
+
+op.add(op.circle(35, 226, 192, 25, 0, 0))
+output(createDesc(getID(1)))
+    </script>
+  </body>
+</html>
